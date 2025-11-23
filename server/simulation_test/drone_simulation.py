@@ -7,7 +7,7 @@ import json
 
 DRONE_ID = "drone_test"
 SERVER_URL = f"ws://localhost:8000/ws/drone/{DRONE_ID}"
-IMAGE_PATH = "./test_img/6.jpg"
+IMAGE_PATH = "./test_img/7.jpg"
 
 # Example sensor data
 SENSOR_DATA = {
