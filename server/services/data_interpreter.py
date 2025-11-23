@@ -29,7 +29,7 @@ class DataInterpreter:
         return co2_sensor + fire_factor
 
     @staticmethod
-    def interpret_data(temp_sensor: float, co2_sensor: float, distance_fire_m: float) -> dict:
+    def interpret_data(temp_sensor: float, co2_sensor: float, distance_fire_m=0) -> dict:
         """
         Combine temperature + CO2 interpretation in one result.
         """

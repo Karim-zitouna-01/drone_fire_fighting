@@ -1,15 +1,19 @@
 # AI/llm_client.py
 
 from google import genai
+import os
+from dotenv import load_dotenv
 
+ 
 
 class LLMClient:
     """
     Static wrapper for calling Gemini models.
     """
+    load_dotenv()
 
-    # Initialize once (later you can load API key from CONFIG)
-    client = genai.Client(api_key="YOUR_API_KEY_HERE")
+    api_key = os.getenv("GENAI_API_KEY")
+    client = genai.Client(api_key=api_key)
 
     @staticmethod
     def call_gemini(prompt: str, model_name: str = "gemini-2.5-flash") -> str:

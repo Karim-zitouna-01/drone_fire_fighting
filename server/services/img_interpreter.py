@@ -31,8 +31,11 @@ Then answer the following in JSON only:
   "smoke_detected": true/false
 }
 """
-
-        raw = VLMClient.call_qwen2(image_path, prompt)
+        try:
+            raw = VLMClient.call_qwen2(image_path, prompt)
+        except Exception as e:
+            raw = f"Error calling VLM: {e}"
+            print(raw)
 
        
         
