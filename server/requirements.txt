@@ -16,3 +16,7 @@ torchvision
 qwen_vl_utils
 google-genai
 accelerate
+opencv-python
+
+
+aiohttp
