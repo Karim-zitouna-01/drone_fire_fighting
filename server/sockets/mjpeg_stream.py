@@ -25,23 +25,38 @@ def get_event(drone_id: str):
     return DRONE_EVENTS[drone_id]
 
 
-# ------------- Upload Route ----------------
+# ------------- UDP server for drone frames ----------------
 
-@router.post("/video/upload/{drone_id}")
-async def upload_frame(drone_id: str, file: UploadFile = File(...)):
-    """
-    Drone sends frames here.
-    Each drone has its own buffer + event mechanism.
-    """
-    content = await file.read()
-    if not content:
-        raise HTTPException(400, "Empty frame received")
+async def udp_frame_server(host="0.0.0.0", port=9999):
+    print(f"🚀 UDP server listening on {host}:{port}")
 
-    async with get_lock(drone_id):
-        DRONE_FRAMES[drone_id] = content
-        get_event(drone_id).set()     # Wake the MJPEG generator
+    loop = asyncio.get_event_loop()
+    transport, protocol = await loop.create_datagram_endpoint(
+        lambda: UDPFrameProtocol(),
+        local_addr=(host, port)
+    )
 
-    return {"status": "ok"}
+
+class UDPFrameProtocol(asyncio.DatagramProtocol):
+    def datagram_received(self, data, addr):
+        """
+        Expected packet format:
+        drone_id|JPEG_BYTES
+        """
+        try:
+            drone_id, jpeg = data.split(b"|", 1)
+            drone_id = drone_id.decode("utf-8")
+        except Exception:
+            print("❌ Bad UDP frame packet \n")
+            
+            return
+
+        asyncio.create_task(self.store_frame(drone_id, jpeg))
+
+    async def store_frame(self, drone_id, jpeg):
+        async with get_lock(drone_id):
+            DRONE_FRAMES[drone_id] = jpeg
+            get_event(drone_id).set()
 
 
 # ------------- MJPEG Stream Generator ----------------

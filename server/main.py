@@ -1,11 +1,12 @@
 # main.py
 
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from sockets.drone_ws import router as drone_router
-from sockets.mjpeg_stream import router as mjpeg_router, mjpeg_generator
+from sockets.mjpeg_stream import udp_frame_server, mjpeg_generator
 
 app = FastAPI(title="Firefighting Drone Server")
 
@@ -20,10 +21,13 @@ app.add_middleware(
 
 # Register routers
 app.include_router(drone_router)
-app.include_router(mjpeg_router)
+
 
 
 # ----------- New Multi-Drone Stream Route -------------
+@app.on_event("startup")
+async def start_udp():
+    asyncio.create_task(udp_frame_server())
 
 @app.get("/video/stream/{drone_id}")
 async def video_stream(drone_id: str):

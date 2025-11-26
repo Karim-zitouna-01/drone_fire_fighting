@@ -1,24 +1,23 @@
-# simulation_test/drone_simulation.py
-
 import asyncio
 import os
 import random
 import cv2
-import aiohttp
 import websockets
 import base64
 import json
-
-SERVER_UPLOAD_URL = "http://localhost:8000/video/upload/2"
-TEST_IMG_FOLDER = "./test_img"
-
+import socket
 
 DRONE_ID = "2"
 
-WS_FRAME_URL = f"ws://localhost:8000/ws/drone/{DRONE_ID}"
-WS_STREAM_URL = f"ws://localhost:8000/video/stream"
+# -----------------------------
+# UDP STREAM CONFIG
+# -----------------------------
+UDP_SERVER_IP = "127.0.0.1"
+UDP_SERVER_PORT = 9999
 
 TEST_IMG_FOLDER = "./test_img"
+
+WS_FRAME_URL = f"ws://localhost:8000/ws/drone/{DRONE_ID}"
 
 
 # ---------------------------
@@ -40,13 +39,13 @@ def generate_position():
 
 
 # ---------------------------
-# TASK 1 → Send image+data every 20 sec
+# TASK 1 → Telemetry every 20 sec (via WS)
 # ---------------------------
 async def send_periodic_frames():
-    print("📡 Starting periodic frame sender...")
+    print("📡 Starting periodic telemetry sender...")
 
     image_files = [
-        f for f in os.listdir(TEST_IMG_FOLDER) 
+        f for f in os.listdir(TEST_IMG_FOLDER)
         if f.lower().endswith((".jpg", ".png", ".jpeg"))
     ]
 
@@ -55,10 +54,9 @@ async def send_periodic_frames():
         return
 
     async with websockets.connect(WS_FRAME_URL) as ws:
-        print("✅ Connected to WS for frames.")
+        print("✅ Connected to WS for telemetry.")
 
         while True:
-            # pick random image
             img_name = random.choice(image_files)
             img_path = os.path.join(TEST_IMG_FOLDER, img_name)
 
@@ -73,67 +71,68 @@ async def send_periodic_frames():
                 "position": generate_position(),
             }
 
-            print(f"📤 Sending frame: {img_name}")
-
+            print(f"📤 Sent telemetry frame: {img_name}")
             await ws.send(json.dumps(payload))
 
             await asyncio.sleep(20)  # every 20 sec
 
 
 # ---------------------------
-# TASK 2 → Live camera MJPEG stream (via WS)
+# TASK 2 → Live MJPEG over UDP
 # ---------------------------
 
-async def stream_video():
+async def stream_video_udp():
     """
-    Read either webcam frames or images from test_img folder
-    and send via HTTP POST to server.
+    Read webcam frames or fallback images and send via UDP
+    with header:  DRONE_ID|JPEG_BYTES
     """
-    cap = cv2.VideoCapture(0)  # Use webcam
+    print("🎥 Starting UDP live stream... (ID:", DRONE_ID, ")")
+
+    cap = cv2.VideoCapture(0)
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
     image_files = [
         f for f in os.listdir(TEST_IMG_FOLDER)
         if f.lower().endswith((".jpg", ".jpeg", ".png"))
     ]
 
-    async with aiohttp.ClientSession() as session:
-        while True:
-            # Use webcam if available, else random test image
-            ret, frame = cap.read()
-            if not ret and image_files:
-                # fallback to random image
+    while True:
+        ret, frame = cap.read()
+
+        if not ret:
+            if image_files:
                 img_name = random.choice(image_files)
                 frame = cv2.imread(os.path.join(TEST_IMG_FOLDER, img_name))
-            elif not ret:
-                # No webcam, no images
+            else:
                 await asyncio.sleep(0.1)
                 continue
 
-            # Resize to 480p
-            frame = cv2.resize(frame, (640, 480))
-            _, jpeg = cv2.imencode(".jpg", frame)
-            jpeg_bytes = jpeg.tobytes()
+        frame = cv2.resize(frame, (640, 480))
+        _, jpeg = cv2.imencode(".jpg", frame)
+        jpeg_bytes = jpeg.tobytes()
 
-            # Send via multipart/form-data
-            data = aiohttp.FormData()
-            data.add_field('file', jpeg_bytes, filename='frame.jpg', content_type='image/jpeg')
+        # -----------------------------
+        # SEND FORMAT:  b"drone_id|JPEG_BYTES"
+        # -----------------------------
+        packet = DRONE_ID.encode() + b"|" + jpeg_bytes
 
-            try:
-                await session.post(SERVER_UPLOAD_URL, data=data)
-            except Exception as e:
-                print(f"Error sending frame: {e}")
+        try:
+            udp_socket.sendto(packet, (UDP_SERVER_IP, UDP_SERVER_PORT))
+        except Exception as e:
+            print("UDP send error:", e)
 
-            await asyncio.sleep(0.03)  # ~30 FPS
+        await asyncio.sleep(0.03)  # ~30 FPS
 
 
+# ---------------------------
+# MAIN
+# ---------------------------
 async def main():
     await asyncio.gather(
         send_periodic_frames(),
-        stream_video()
+        stream_video_udp()
     )
+
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
