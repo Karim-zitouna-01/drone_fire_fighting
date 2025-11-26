@@ -9,11 +9,11 @@ import websockets
 import base64
 import json
 
-SERVER_UPLOAD_URL = "http://localhost:8000/video/upload"
+SERVER_UPLOAD_URL = "http://localhost:8000/video/upload/2"
 TEST_IMG_FOLDER = "./test_img"
 
 
-DRONE_ID = "drone_test"
+DRONE_ID = "2"
 
 WS_FRAME_URL = f"ws://localhost:8000/ws/drone/{DRONE_ID}"
 WS_STREAM_URL = f"ws://localhost:8000/video/stream"

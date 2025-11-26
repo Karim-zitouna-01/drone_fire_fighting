@@ -1,65 +1,70 @@
 # drone_fire_fighting/server/sockets/mjpeg_stream.py
+
 import asyncio
-from fastapi import APIRouter, UploadFile, File
-from fastapi.responses import StreamingResponse
-import cv2
-import numpy as np
+from fastapi import APIRouter, UploadFile, File, HTTPException
 
 router = APIRouter()
 
-latest_frame = None
-lock = asyncio.Lock()
+# Store latest frame + event per drone
+DRONE_FRAMES = {}       # drone_id → jpeg bytes
+DRONE_EVENTS = {}       # drone_id → asyncio.Event()
+DRONE_LOCKS = {}        # drone_id → asyncio.Lock()
 
 
-@router.post("/video/upload")
-async def upload_frame(file: UploadFile = File(...)):
+def get_lock(drone_id: str):
+    """Return an existing lock or create one."""
+    if drone_id not in DRONE_LOCKS:
+        DRONE_LOCKS[drone_id] = asyncio.Lock()
+    return DRONE_LOCKS[drone_id]
+
+
+def get_event(drone_id: str):
+    """Return an existing event or create one."""
+    if drone_id not in DRONE_EVENTS:
+        DRONE_EVENTS[drone_id] = asyncio.Event()
+    return DRONE_EVENTS[drone_id]
+
+
+# ------------- Upload Route ----------------
+
+@router.post("/video/upload/{drone_id}")
+async def upload_frame(drone_id: str, file: UploadFile = File(...)):
     """
-    Drone sends JPEG images here via multipart/form-data.
+    Drone sends frames here.
+    Each drone has its own buffer + event mechanism.
     """
-    global latest_frame
     content = await file.read()
-    async with lock:
-        latest_frame = content
+    if not content:
+        raise HTTPException(400, "Empty frame received")
+
+    async with get_lock(drone_id):
+        DRONE_FRAMES[drone_id] = content
+        get_event(drone_id).set()     # Wake the MJPEG generator
+
     return {"status": "ok"}
 
 
-async def mjpeg_generator():
+# ------------- MJPEG Stream Generator ----------------
+
+async def mjpeg_generator(drone_id: str):
     """
-    MJPEG generator for browser.
-    Continuously re-encodes the latest_frame to ensure proper JPEG.
+    Independent MJPEG generator for each drone.
     """
-    global latest_frame
+    event = get_event(drone_id)
 
     while True:
-        async with lock:
-            frame_bytes = latest_frame
+        # Wait until a new frame arrives
+        await event.wait()
+        event.clear()
 
-        if frame_bytes is not None:
-            # Decode JPEG bytes to numpy
-            np_arr = np.frombuffer(frame_bytes, np.uint8)
-            frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        frame_bytes = DRONE_FRAMES.get(drone_id)
+        if not frame_bytes:
+            continue
 
-            if frame is None:
-                # fallback black
-                frame = np.zeros((480, 640, 3), dtype=np.uint8)
-
-            # Resize to 480p
-            frame = cv2.resize(frame, (640, 480))
-
-            # Re-encode as JPEG
-            _, jpeg = cv2.imencode(".jpg", frame)
-            frame_bytes = jpeg.tobytes()
-        else:
-            # initial black frame
-            frame = np.zeros((480, 640, 3), dtype=np.uint8)
-            _, jpeg = cv2.imencode(".jpg", frame)
-            frame_bytes = jpeg.tobytes()
-
+        # Directly yield the raw JPEG (no decoding/re-encoding)
         yield (
             b"--frame\r\n"
             b"Content-Type: image/jpeg\r\n\r\n" +
             frame_bytes +
             b"\r\n"
         )
-
-        await asyncio.sleep(0.03)
