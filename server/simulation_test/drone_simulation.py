@@ -74,7 +74,7 @@ async def send_periodic_frames():
             print(f"📤 Sent telemetry frame: {img_name}")
             await ws.send(json.dumps(payload))
 
-            await asyncio.sleep(20)  # every 20 sec
+            await asyncio.sleep(60)  # every 20 sec
 
 
 # ---------------------------

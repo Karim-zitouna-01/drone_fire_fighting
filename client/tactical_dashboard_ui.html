@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>HEXA-S.E.C.U.R.E.</title>
+<style>
+    /* === GLOBAL === */
+    body {
+        margin: 0;
+        background: #0d0d0f;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: #e6e6e6;
+    }
+
+    .layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        height: 100vh;
+    }
+
+    /* === SIDEBAR === */
+    .sidebar {
+        background: linear-gradient(180deg, #111113, #0b0b0d 60%);
+        border-right: 1px solid #1b1b1f;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .side-title {
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .nav-item {
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: #151518;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .nav-item:hover {
+        background: #1d1d22;
+    }
+
+    /* === MAIN PANEL === */
+    .main {
+        padding: 25px;
+        overflow-y: auto;
+    }
+
+    .top-title {
+        font-size: 26px;
+        margin-bottom: 25px;
+    }
+
+    /* === VIDEO GRID === */
+    .video-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+    }
+
+    .video-card {
+        background: #141418;
+        padding: 16px;
+        border-radius: 16px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .video-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .video-title {
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    .tag {
+        padding: 2px 7px;
+        border-radius: 6px;
+        background: #232327;
+        font-size: 11px;
+        margin-left: 4px;
+    }
+
+    .tag.live {
+        background: #ff0033;
+        color: #fff;
+    }
+
+    .stream {
+        width: 100%;
+        height: 330px;
+        border-radius: 12px;
+        object-fit: cover;
+        background: #000;
+    }
+
+    /* === TABLE === */
+    .section-title {
+        margin-top: 35px;
+        margin-bottom: 12px;
+        font-size: 20px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        background: #141418;
+        border-radius: 14px;
+    }
+
+    th {
+        background: #1a1a1f;
+        padding: 12px;
+        font-size: 13px;
+        text-align: left;
+        color: #b8b8b8;
+    }
+
+    td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #1e1e24;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #121215;
+    }
+
+    /* Thumbnails */
+    .thumb {
+        width: 55px;
+        height: 42px;
+        border-radius: 6px;
+        object-fit: cover;
+        cursor: zoom-in;
+        transition: 0.2s;
+    }
+
+    .thumb:hover {
+        transform: scale(5.4);
+        position: relative;
+        z-index: 10;
+    }
+
+    /* Danger Badge */
+    .badge {
+        padding: 6px 12px;
+        border-radius: 8px;
+        color: #000;
+        font-weight: bold;
+        display: inline-block;
+    }
+    .danger-high { background: #ff2a2a; }
+    .danger-med { background: #ff982a; }
+    .danger-low { background: #4dff5e; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="side-title">Mission Control</div>
+        <div class="nav-item">Overview</div>
+        <div class="nav-item">Live Drones</div>
+        <div class="nav-item">Maps</div>
+        <div class="nav-item">Logs</div>
+        <div class="nav-item">Settings</div>
+    </div>
+
+    <!-- MAIN PANEL -->
+    <div class="main">
+        <div class="top-title">Tactical Oversight</div>
+
+        <!-- VIDEO STREAMS -->
+        <div class="video-grid">
+            <div class="video-card">
+                <div class="video-header">
+                    <span class="video-title">DRONE A — North Sector</span>
+                    <div>
+                        <span class="tag">ALT: 50m</span>
+                        <span class="tag">BAT: 86%</span>
+                        <span class="tag live">LIVE</span>
+                    </div>
+                </div>
+                <img class="stream" src="http://localhost:8000/video/stream/2" />
+            </div>
+
+            <div class="video-card">
+                <div class="video-header">
+                    <span class="video-title">DRONE B — East Wing</span>
+                    <div>
+                        <span class="tag">ALT: 42m</span>
+                        <span class="tag">BAT: 78%</span>
+                        <span class="tag live">LIVE</span>
+                    </div>
+                </div>
+                <img class="stream" src="http://localhost:8000/video/stream/1" />
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="section-title">Recent Drone Data</div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Time</th>
+                <th>Drone</th>
+                <th>Preview</th>
+                <th>Danger</th>
+                <th>Position</th>
+                <th>Temp</th>
+                <th>CO2</th>
+                <th>Detected</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// === WebSocket Handling ===
+const ws = new WebSocket("ws://localhost:8000/ws/dashboard");
+
+ws.onmessage = (ev) => {
+    const data = JSON.parse(ev.data);
+
+    if (data.type === "history_update") {
+        updateTable(data.history);
+    }
+};
+
+function dangerBadge(score) {
+    let cls = "danger-low";
+    if (score >= 85) cls = "danger-high";
+    else if (score >= 50) cls = "danger-med";
+    return `<span class="badge ${cls}">${score}</span>`;
+}
+
+function updateTable(rows) {
+    const body = document.getElementById("table-body");
+    body.innerHTML = "";
+
+    // Reverse the incoming rows
+    const reversed = [...rows].reverse();
+
+    reversed.forEach(r => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${new Date(r.timestamp * 1000).toLocaleTimeString()}</td>
+            <td>${r.drone_id}</td>
+            <td><img class="thumb" src="data:image/jpeg;base64,${r.image}"></td>
+            <td>${dangerBadge(r.danger.danger_score)}</td>
+            <td>${r.position.gps_lat}, ${r.position.gps_lon}</td>
+            <td>${r.data_info.real_temp}</td>
+            <td>${r.data_info.real_co2}</td>
+            <td>${r.people_count}</td>
+            <td>${r.danger.reason}</td>
+        `;
+
+        body.appendChild(tr);
+    });
+}
+
+</script>
+</body>
+</html>
