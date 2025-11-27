@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drone Tactical Oversight</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="dashboard">
+
+    <h1>Tactical Oversight</h1>
+
+    <!-- VIDEO STREAMS -->
+    <div class="video-row">
+
+        <!-- Left Drone Feed -->
+        <div class="video-box">
+            <div class="video-header">
+                <span>DRONE FEED A</span>
+                <div class="drone-select">
+                    <label><input type="radio" name="droneA" value="1" checked> Drone 1</label>
+                    <label><input type="radio" name="droneA" value="2"> Drone 2</label>
+                    <label><input type="radio" name="droneA" value="3"> Drone 3</label>
+                    <label><input type="radio" name="droneA" value="4"> Drone 4</label>
+                </div>
+            </div>
+
+            <img id="streamA" class="stream" src="/video/stream/1">
+        </div>
+
+        <!-- Right Drone Feed -->
+        <div class="video-box">
+            <div class="video-header">
+                <span>DRONE FEED B</span>
+                <div class="drone-select">
+                    <label><input type="radio" name="droneB" value="1" checked> Drone 1</label>
+                    <label><input type="radio" name="droneB" value="2"> Drone 2</label>
+                    <label><input type="radio" name="droneB" value="3"> Drone 3</label>
+                    <label><input type="radio" name="droneB" value="4"> Drone 4</label>
+                </div>
+            </div>
+
+            <img id="streamB" class="stream" src="/video/stream/1">
+        </div>
+
+    </div>
+
+    <!-- TELEMETRY TABLE -->
+    <h2>Recent Drone Data</h2>
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Drone ID</th>
+                <th>Thumbnail</th>
+                <th>Danger Score</th>
+                <th>GPS Position</th>
+                <th>Temp</th>
+                <th>CO2</th>
+                <th>People</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

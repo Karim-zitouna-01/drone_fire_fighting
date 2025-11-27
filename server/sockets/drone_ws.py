@@ -107,3 +107,16 @@ async def drone_ws(websocket: WebSocket, drone_id: str):
     except Exception as e:
         print(f"Drone {drone_id} disconnected:", e)
         await manager.disconnect_drone(drone_id)
+
+@router.websocket("/ws/dashboard")
+async def dashboard_ws(websocket: WebSocket):
+    await manager.connect_dashboard(websocket)
+
+    try:
+        while True:
+            # Dashboard does not send anything (for now)
+            await websocket.receive_text()
+
+    except Exception as e:
+        print("Dashboard disconnected:", e)
+        await manager.disconnect_dashboard(websocket)
